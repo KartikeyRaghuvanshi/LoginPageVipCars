@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforce Login Integration</title>
+    <style>
+        /* Basic Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 350px;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        .error { color: #dc3545; }
+        .hidden { display: none; }
+        
+        /* Home Page Text Styling */
+        .home-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginSection" class="login-container">
+        <h2>Login</h2>
+        <input type="email" id="email" placeholder="Email (admin@test.com)" required>
+        <input type="password" id="password" placeholder="Password (password123)" required>
+        <button onclick="handleLogin()">Login</button>
+        <p id="message"></p>
+    </div>
+
+    <div id="welcomeSection" class="login-container hidden">
+        <p class="home-text">Welcome to home page</p>
+        <button onclick="handleLogout()" style="background-color: #6c757d; margin-top: 20px;">Logout</button>
+    </div>
+
+    <script type='text/javascript'>
+        function initEmbeddedMessaging() {
+            try {
+                embeddedservice_bootstrap.settings.language = 'en_US'; 
+
+                embeddedservice_bootstrap.init(
+                    '00DBi000003OeAg',
+                    'VIPCars_Service_agent',
+                    'https://enterprise-force-4968--dev.sandbox.my.site.com/ESWVIPCarsServiceagent1769208537342',
+                    {
+                        scrt2URL: 'https://enterprise-force-4968--dev.sandbox.my.salesforce-scrt.com'
+                    }
+                );
+            } catch (err) {
+                console.error('Error loading Embedded Messaging: ', err);
+            }
+        };
+    </script>
+    <script type='text/javascript' src='https://enterprise-force-4968--dev.sandbox.my.site.com/ESWVIPCarsServiceagent1769208537342/assets/js/bootstrap.min.js' onload='initEmbeddedMessaging()'></script>
+
+    <script type="text/javascript">
+        var userEmail; // Variable to store email for pre-chat
+
+        // Match event name with LWC exactly
+        window.addEventListener('current_user_id', function(e) {
+            console.log("userInfo event received");
+            userEmail = e.detail.email;
+            console.log("Retrieved email from event:", userEmail);
+        });
+
+        // When the embedded messaging system is ready
+        window.addEventListener("onEmbeddedMessagingReady", function() {
+            console.log("Embedded Messaging is ready");
+
+            // Set hidden prechat fields
+            // Note: $A is a Salesforce Aura global, it may be undefined in a standalone HTML page.
+            try {
+                embeddedservice_bootstrap.prechatAPI.setHiddenPrechatFields({
+                    "Current_User_Id": (typeof $A !== 'undefined') ? $A.get('$SObjectType.CurrentUser.Id') : "GuestUser",
+                    "Email": userEmail
+                });
+
+                console.log("Hidden prechat fields set with:", {
+                    Current_User_Id: (typeof $A !== 'undefined') ? $A.get('$SObjectType.CurrentUser.Id') : "GuestUser",
+                    Email: userEmail
+                });
+            } catch (err) {
+                console.error("Error setting prechat fields:", err);
+            }
+        });
+    </script>
+
+    <script>
+        const validUser = {
+            email: "admin@test.com",
+            password: "password123"
+        };
+
+        function handleLogin() {
+            const emailValue = document.getElementById('email').value;
+            const passwordValue = document.getElementById('password').value;
+            const message = document.getElementById('message');
+            
+            message.textContent = "";
+            message.className = "";
+
+            if (!emailValue || !passwordValue) {
+                message.textContent = "Please fill in all fields.";
+                message.className = "error";
+                return;
+            }
+
+            if (emailValue === validUser.email && passwordValue === validUser.password) {
+                // Success: Capture email for Salesforce script
+                userEmail = emailValue; 
+                
+                // Switch to Home Page
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('welcomeSection').classList.remove('hidden');
+                
+                console.log("Login successful. Email captured for Messaging:", userEmail);
+            } else {
+                message.textContent = "Invalid username or password.";
+                message.className = "error";
+            }
+        }
+
+        function handleLogout() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('welcomeSection').classList.add('hidden');
+            document.getElementById('email').value = "";
+            document.getElementById('password').value = "";
+            document.getElementById('message').textContent = "";
+        }
+    </script>
+</body>
+</html>
